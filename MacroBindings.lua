@@ -38,10 +38,6 @@ if not API then return end
 local Engine = CreateFrame('Frame', nil, nil, 'SecureHandlerStateTemplate')
 
 local API_SLASH_CMD = '/binding'
-local MATCH_EOL     = '%s+([^\n]+)'
-local MATCH_CMD     =  API_SLASH_CMD..MATCH_EOL
-local MATCH_PATTERN = '(%b[]%s*[^;]+)'          
-local MATCH_DEFAULT = '([^;%s]+)'
 
 -- Conditions to apply bindings
 local DRIVER_COND_SIGNATURE = '_onstate-%d';
@@ -330,27 +326,53 @@ function Engine:UPDATE_MACROS()
 	end
 end
 
--- Macro parsing
-function API:ParseBody(body)
-	if not body then return end
-	local default, conditions;
-	for line in body:gmatch(MATCH_CMD) do
-		for condition in line:gmatch(MATCH_PATTERN) do
-			conditions = conditions or {};
-			conditions[#conditions + 1] = condition;
+do -- Macro parsing
+	local MACRO_EOL     = '%s+([^\n]+)'
+	local MACRO_CMD     =  API_SLASH_CMD..MACRO_EOL
+	local MACRO_PATTERN = '((%b[])%s*([^;]+))'          
+	local MACRO_DEFAULT = '([^;%s]+)'
+
+	local bindingNameIndex, indexedBindings = {}, 0;
+	local function UpdateBindingNameIndex()
+		local numBindings = GetNumBindings()
+		if indexedBindings == numBindings then
+			return
 		end
-		if not default then
-			local fallbacks = line:gsub(MATCH_PATTERN, '');
-			for fallback in fallbacks:gmatch(MATCH_DEFAULT) do
-				default = fallback;
-				break;
+		indexedBindings = numBindings;
+		for i=1, numBindings do
+			local command = GetBinding(i)
+			local bindingName = GetBindingName(command)
+			bindingNameIndex[bindingName] = command;
+		end
+	end
+
+	local function ConvertBindingNameToID(bindingName)
+		UpdateBindingNameIndex()
+		return bindingNameIndex[bindingName] or bindingName;
+	end
+
+	function API:ParseBody(body)
+		if not body then return end
+		local default, conditions;
+		for line in body:gmatch(MACRO_CMD) do
+			for _, conditionals, binding in line:gmatch(MACRO_PATTERN) do
+				local bindingID = ConvertBindingNameToID(binding)
+				conditions = conditions or {};
+				conditions[#conditions + 1] = ('%s %s'):format(conditionals, bindingID)
+			end
+			if not default then
+				local fallbacks = line:gsub(MACRO_PATTERN, '');
+				for fallback in fallbacks:gmatch(MACRO_DEFAULT) do
+					default = fallback;
+					break;
+				end
 			end
 		end
+		if conditions then
+			conditions[#conditions + 1] = default or 'nil';
+		end
+		return conditions;
 	end
-	if conditions then
-		conditions[#conditions + 1] = default or 'nil';
-	end
-	return conditions;
 end
 
 function API:SetPageDriver(barID, condition, response)
@@ -422,7 +444,8 @@ _G['SLASH_BINDING1'] = API_SLASH_CMD;
 SlashCmdList['BINDING'] = function(message)
 	local result = tostring(SecureCmdOptionParse(message) or nil)
 	if (result == '' or result == 'nil') then return end;
-	print('Failed to intercept macro binding.'
-		..' Macro bindings cannot be triggered from mouse clicks.'
-		..' Condition called:\n' .. BLUE_FONT_COLOR:WrapTextInColorCode(message))
+	print('Failed to intercept macro binding. Macro bindings cannot be triggered from mouse clicks.'
+		..'\nCondition called:\n' .. BLUE_FONT_COLOR:WrapTextInColorCode(message)
+		..'\nExpected binding:\n' .. YELLOW_FONT_COLOR:WrapTextInColorCode(GetBindingName(result))
+	)
 end
