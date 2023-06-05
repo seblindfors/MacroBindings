@@ -33,6 +33,8 @@
 --  @param template    : The binding template to use, e.g. ACTIONBUTTON%d
 --  MacroBindings:SetBindingTemplate(barID, template)
 
+assert(LibStub, 'MacroBindings requires LibStub')
+
 local API = LibStub:NewLibrary('MacroBindings', 1)
 if not API then return end
 local Engine = CreateFrame('Frame', nil, nil, 'SecureHandlerStateTemplate')
