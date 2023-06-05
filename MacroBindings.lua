@@ -7,7 +7,7 @@
 -- Licence: GPL version 2 (General Public License)
 -- 
 -- Description:
---  This library adds support for executing macros based on macro
+--  This library adds support for executing bindings based on macro
 --  conditions. Bindings can be dynamically mapped to macros based
 --  on where the macros are placed on the action bars.
 -- 
@@ -51,6 +51,18 @@ local DRIVER_PAGE_TEMPLATE  = [[
 	%s -- (1) Execute response (optional)
 	self:SetAttribute(tostring(barID), newstate) -- (2) Store state
 	self:RunAttribute('RefreshBindingsForActionBar', newstate) -- (3) Refresh bindings
+]];
+
+-- Secure code to progrmatically inject newstate
+local INJECT_NEWSTATE_FLAT  = [[local newstate = %d; %s]];
+local INJECT_NEWSTATE_CONV  = [[
+	local newstate = SecureCmdOptionParse(%q)
+	if (newstate == 'nil') then
+		newstate = nil;
+	else
+		newstate = tonumber(newstate) or newstate;
+	end
+	%s
 ]];
 
 local BAR_TO_BINDING_TEMPLATE = {
@@ -247,7 +259,7 @@ end
 
 local ENGINE_EVENTS = {
 	'UPDATE_MACROS',
-	'UPDATE_BINDINGS',
+	'UPDATE_BINDINGS', -- TODO
 	'ACTIONBAR_SLOT_CHANGED',
 	'PLAYER_REGEN_ENABLED',
 	'PLAYER_LOGIN',
@@ -282,9 +294,12 @@ end
 Engine.Drivers = {};
 
 function Engine:AddDriver(macroID, driver)
+	local resolver = DRIVER_COND_TEMPLATE:format(macroID)
+	local injection = INJECT_NEWSTATE_CONV:format(driver, resolver)
+
 	RegisterStateDriver(self, tostring(macroID), driver)
-	self:SetAttribute(DRIVER_COND_SIGNATURE:format(macroID), DRIVER_COND_TEMPLATE:format(macroID))
-	self:__('DRIVERS[%d] = %q', macroID, driver)
+	self:SetAttribute(DRIVER_COND_SIGNATURE:format(macroID), resolver)
+	self:__('DRIVERS[%d] = %q; %s', macroID, driver, injection)
 end
 
 function Engine:RemoveDrivers()
@@ -326,11 +341,13 @@ function Engine:UPDATE_MACROS()
 	end
 end
 
+-- API
+
 do -- Macro parsing
 	local MACRO_EOL     = '%s+([^\n]+)'
 	local MACRO_CMD     =  API_SLASH_CMD..MACRO_EOL
 	local MACRO_PATTERN = '((%b[])%s*([^;]+))'          
-	local MACRO_DEFAULT = '([^;%s]+)'
+	local MACRO_DEFAULT = '([^;]+)'
 
 	local bindingNameIndex, indexedBindings = {}, 0;
 	local function UpdateBindingNameIndex()
@@ -363,8 +380,11 @@ do -- Macro parsing
 			if not default then
 				local fallbacks = line:gsub(MACRO_PATTERN, '');
 				for fallback in fallbacks:gmatch(MACRO_DEFAULT) do
-					default = fallback;
-					break;
+					fallback = fallback:trim()
+					if ( fallback:len() > 0 ) then
+						default = ConvertBindingNameToID(fallback);
+						break;
+					end
 				end
 			end
 		end
@@ -388,20 +408,11 @@ function API:SetBindingTemplate(barID, template)
 	local condition = Engine:GetAttribute(DRIVER_PAGE_CONDITION:format(barID))
 	local stateRefresh;
 	if stateHandler then
-		stateRefresh = condition and ([[
-			local newstate = SecureCmdOptionParse(%q)
-			if (newstate == 'nil') then
-				newstate = nil;
-			else
-				newstate = tonumber(newstate) or newstate;
-			end
-			%s
-		]]):format(condition, stateHandler) or ([[
-			local newstate = %d;
-			%s
-		]]):format(barID, stateHandler)
+		stateRefresh = condition
+			and INJECT_NEWSTATE_CONV:format(condition, stateHandler)
+			or  INJECT_NEWSTATE_FLAT:format(barID, stateHandler)
 	else
-		stateRefresh = ('local newstate = %d; %s'):format(barID, DRIVER_PAGE_TEMPLATE:format(barID, ''))
+		stateRefresh = INJECT_NEWSTATE_FLAT:format(barID, DRIVER_PAGE_TEMPLATE:format(barID, ''))
 	end
 	Engine:__([[BARS[%d] = %q; %s]], barID, template, stateRefresh)
 end
