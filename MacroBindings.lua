@@ -416,3 +416,13 @@ do  -- Set default page driver to match Blizzard's default for the main action b
 		end
 	]]):format(NUM_ACTIONBAR_PAGES))
 end
+
+-- Add some error handling for when macros are clicked
+_G['SLASH_BINDING1'] = API_SLASH_CMD;
+SlashCmdList['BINDING'] = function(message)
+	local result = tostring(SecureCmdOptionParse(message) or nil)
+	if (result == '' or result == 'nil') then return end;
+	print('Failed to intercept macro binding.'
+		..' Macro bindings cannot be triggered from mouse clicks.'
+		..' Condition called:\n' .. BLUE_FONT_COLOR:WrapTextInColorCode(message))
+end
