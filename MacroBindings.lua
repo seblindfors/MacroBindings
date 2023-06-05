@@ -259,7 +259,7 @@ end
 
 local ENGINE_EVENTS = {
 	'UPDATE_MACROS',
-	'UPDATE_BINDINGS', -- TODO
+	'UPDATE_BINDINGS',
 	'ACTIONBAR_SLOT_CHANGED',
 	'PLAYER_REGEN_ENABLED',
 	'PLAYER_LOGIN',
@@ -329,6 +329,16 @@ end
 
 function Engine:ACTIONBAR_SLOT_CHANGED(slotID)
 	self:__('self::RefreshActionSlot(%d)', slotID)
+end
+
+function Engine:UPDATE_BINDINGS()
+	if self.throttle_UPDATE_BINDINGS then return end;
+	self.throttle_UPDATE_BINDINGS = true;
+	C_Timer.After(0, function()
+		self:UPDATE_MACROS()
+		self:PLAYER_LOGIN()
+		self.throttle_UPDATE_BINDINGS = nil;
+	end)
 end
 
 function Engine:UPDATE_MACROS()
