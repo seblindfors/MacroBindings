@@ -475,7 +475,7 @@ _G['SLASH_BINDING1'] = API_SLASH_CMD;
 SlashCmdList['BINDING'] = function(message)
 	local result = tostring(SecureCmdOptionParse(message) or nil)
 	if (result == '' or result == 'nil') then return end;
-	print('Failed to intercept macro binding. Macro bindings cannot be triggered from mouse clicks.'
+	print('Failed to intercept macro binding. Please note that bindings in macros cannot be triggered from mouse clicks.'
 		..'\nCondition called:\n' .. BLUE_FONT_COLOR:WrapTextInColorCode(message)
 		..'\nExpected binding:\n' .. YELLOW_FONT_COLOR:WrapTextInColorCode(GetBindingName(result))
 	)
