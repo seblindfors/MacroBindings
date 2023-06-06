@@ -13,6 +13,7 @@ This library adds support for executing bindings based on macro conditions. Bind
 /binding [extrabar] Extra Action Button 1
 /cast Living Flame
 ```
+Bindings can be referenced by both their localized name and their IDs.
 ## API
 The API is very slim. A macro body can be tested to see which conditions will be configured in a macro driver. Apart from that, different page drivers and binding ID templates can be used to work with action bar addons that do not follow the Blizzard standard.
 ```lua
