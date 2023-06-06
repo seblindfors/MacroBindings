@@ -1,0 +1,7 @@
+package-as: MacroBindings
+
+enable-toc-creation: yes
+
+ignore:
+  - LICENSE
+  - README.md
