@@ -50,9 +50,11 @@ local DRIVER_PAGE_SIGNATURE = '_onstate-page-%d';
 local DRIVER_PAGE_CONDITION = '_page-condition-%d';
 local DRIVER_PAGE_TEMPLATE  = [[
 	local barID = %d;
+	local oldstate = self:GetAttribute(tostring(barID))
 	%s -- (1) Execute response (optional)
 	self:SetAttribute(tostring(barID), newstate) -- (2) Store state
-	self:RunAttribute('RefreshBindingsForActionBar', newstate) -- (3) Refresh bindings
+	self:RunAttribute('ClearBindingsForActionBar', oldstate) -- (3) Clear bindings
+	self:RunAttribute('RefreshBindingsForActionBar', newstate) -- (4) Refresh bindings
 ]];
 
 -- Secure code to progrmatically inject newstate
@@ -110,7 +112,6 @@ end
 Engine:__([[
 	BARS     = {};
 	SLOTS    = {};
-	KEYS     = {};
 	BINDINGS = {};
 	DRIVERS  = {};
 	STATES   = {};
@@ -175,20 +176,27 @@ for name, body in pairs({
 			wipe(bindings)
 		end
 	]];
+	ClearBindingsForActionBar = [[
+		local barID = ...;
+		if not barID then return end;
+		local low, high = self::GetBarRange(barID)
+		for i = low, high do
+			self::ClearBindingsForSlot(i)
+		end
+	]];
+	ClearBindingsForSlot = [[
+		local slotID = ...;
+		local macroID = self::GetStoredMacroInSlot(slotID)
+		if macroID then
+			self::StoreMacroInSlot(slotID, nil)
+			self::ClearBindingsForMacro(macroID)
+		end
+	]];
 	RefreshBindingsForActionBar = [[
 		local barID = ...;
 		local low, high = self::GetBarRange(barID)
 		for i = low, high do
-			self::RefreshBindingsForActionSlot(i)
-		end
-	]];
-	RefreshBindingsForActionSlot = [[
-		local slotID = ...;
-		local macroID = self::GetCurrentMacroInSlot(slotID)
-		if macroID then
-			self::StoreMacroInSlot(slotID, macroID)
-			self::ClearBindingsForMacro(macroID)
-			self::SetBindingsForMacro(macroID, STATES[macroID])
+			self::RefreshActionSlot(i)
 		end
 	]];
 	RefreshActionSlot = [[
@@ -241,7 +249,6 @@ for name, body in pairs({
 	SetBinding = [[
 		local key, override = ...;
 		self:SetBinding(true, key, override)
-		KEYS[key] = override;
 	]];
 	StoreMacroInSlot = [[
 		local slotID, macroID = ...;
@@ -308,7 +315,6 @@ function Engine:RemoveDrivers()
 	self:__([[
 		self:ClearBindings()
 		wipe(BINDINGS)
-		wipe(KEYS)
 		for macroID in pairs(DRIVERS) do
 			self:CallMethod('RemoveDriver', macroID, true)
 		end
