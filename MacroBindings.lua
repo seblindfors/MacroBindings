@@ -35,7 +35,7 @@
 
 assert(LibStub, 'MacroBindings requires LibStub')
 
-local API = LibStub:NewLibrary('MacroBindings', 1)
+local API = LibStub:NewLibrary('MacroBindings', 2)
 if not API then return end
 local Engine = CreateFrame('Frame', nil, nil, 'SecureHandlerStateTemplate')
 
