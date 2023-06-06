@@ -280,10 +280,18 @@ for i, event in ipairs({
 
 Engine.Pending = {};
 function Engine:OnEvent(event, ...)
-	if InCombatLockdown() then tinsert(self.Pending, {event, ...}) return end
+	if InCombatLockdown() then self:AddPendingEvent(event, ...) return end
 	if self[event] then self[event](self, ...) end
 end
 Engine:SetScript('OnEvent', Engine.OnEvent)
+
+function Engine:AddPendingEvent(event, ...)
+	local packet = {event, ...}
+	for i, pending in ipairs(self.Pending) do
+		if tCompare(pending, packet) then return end
+	end
+	tinsert(self.Pending, packet)
+end
 
 function Engine:PLAYER_REGEN_ENABLED()
 	for i, event in ipairs(self.Pending) do
