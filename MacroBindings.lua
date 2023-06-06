@@ -46,6 +46,7 @@ local DRIVER_COND_SIGNATURE = '_onstate-%d';
 local DRIVER_COND_TEMPLATE  = [[self:RunAttribute('SetStateForMacro', %d, newstate)]];
 
 -- Conditions to handle bar swapping
+-- @see API:SetPageDriver(barID, condition, response)
 local DRIVER_PAGE_SIGNATURE = '_onstate-page-%d';
 local DRIVER_PAGE_CONDITION = '_page-condition-%d';
 local DRIVER_PAGE_TEMPLATE  = [[
@@ -69,6 +70,8 @@ local INJECT_NEWSTATE_CONV  = [[
 	%s
 ]];
 
+-- Templates for action bar binding IDs.
+-- @see API:SetBindingTemplate(barID, template)
 local BAR_TO_BINDING_TEMPLATE = {
 	[01] = 'ACTIONBUTTON%d';
 	[02] = 'ACTIONBUTTON%d';
@@ -266,16 +269,15 @@ for name, body in pairs({
 	Engine:Execute(('%s = self:GetAttribute(%q)'):format(name, name))
 end
 
-local ENGINE_EVENTS = {
+-- Set up event handler
+for i, event in ipairs({
 	'UPDATE_MACROS',
 	'UPDATE_BINDINGS',
 	'ACTIONBAR_SLOT_CHANGED',
 	'PLAYER_REGEN_ENABLED',
 	'PLAYER_LOGIN',
-};
+}) do Engine:RegisterEvent(event) end
 
--- Set up event handler
-for i, event in ipairs(ENGINE_EVENTS) do Engine:RegisterEvent(event) end
 Engine.Pending = {};
 function Engine:OnEvent(event, ...)
 	if InCombatLockdown() then tinsert(self.Pending, {event, ...}) return end
