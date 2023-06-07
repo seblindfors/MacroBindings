@@ -2,6 +2,9 @@ package-as: MacroBindings
 
 enable-toc-creation: yes
 
+externals:
+  Libs/LibStub: https://repos.wowace.com/wow/ace3/trunk/LibStub
+
 ignore:
   - LICENSE
   - README.md

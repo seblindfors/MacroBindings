@@ -5,7 +5,6 @@
 ## Title: Macro Bindings
 ## Notes: Use conditional bindings from macros
 ## IconTexture: Interface\MacroFrame\MacroFrame-Icon
-## OptionalDeps: LibStub
 
 ## Author: Sebastian Lindfors
 ## X-Website: https://github.com/seblindfors/MacroBindings
@@ -13,4 +12,5 @@
 ## X-WoWI-ID: 26584
 ## X-Wago-ID: QN5m3ONB
 
+Libs\LibStub\LibStub.lua
 MacroBindings.lua
